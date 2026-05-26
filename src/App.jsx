@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
+  ArrowLeft,
   Ellipsis,
   FileText,
   HeartHandshake,
@@ -79,7 +80,13 @@ function money(value) {
 function App() {
   const [activeCategory, setActiveCategory] = useState('Home')
   const [products, setProducts] = useState([])
-  const [selectedProduct, setSelectedProduct] = useState(null)
+  const [detailSlug, setDetailSlug] = useState(() => {
+    const productPrefix = '#product/'
+    return window.location.hash.startsWith(productPrefix)
+      ? window.location.hash.slice(productPrefix.length)
+      : ''
+  })
+  const [reserveProduct, setReserveProduct] = useState(null)
   const [notice, setNotice] = useState('')
   const [loading, setLoading] = useState(hasSupabaseConfig)
   const [dataError, setDataError] = useState('')
@@ -119,9 +126,28 @@ function App() {
     }
   }, [])
 
+  useEffect(() => {
+    function syncDetailSlug() {
+      const productPrefix = '#product/'
+      setDetailSlug(
+        window.location.hash.startsWith(productPrefix)
+          ? window.location.hash.slice(productPrefix.length)
+          : '',
+      )
+    }
+
+    window.addEventListener('hashchange', syncDetailSlug)
+    return () => window.removeEventListener('hashchange', syncDetailSlug)
+  }, [])
+
   const reservedIds = useMemo(
     () => new Set(products.filter((product) => product.status === 'reserved').map((product) => product.id)),
     [products],
+  )
+
+  const detailProduct = useMemo(
+    () => products.find((product) => product.slug === detailSlug),
+    [detailSlug, products],
   )
 
   const visibleProducts = products.filter((product) => {
@@ -154,6 +180,23 @@ function App() {
   const pageTitle = activeCategory === 'Home' ? 'Our Catalog' : activeCategory
   const showTrustRow = activeCategory === 'Hmong Clothes' || activeCategory === 'Miscs'
 
+  function navigateToCategory(category) {
+    setActiveCategory(category)
+    setDetailSlug('')
+    window.history.pushState(null, '', window.location.pathname + window.location.search)
+  }
+
+  function openProduct(product) {
+    setDetailSlug(product.slug)
+    window.history.pushState(null, '', `#product/${product.slug}`)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  function closeProduct() {
+    setDetailSlug('')
+    window.history.pushState(null, '', window.location.pathname + window.location.search)
+  }
+
   function updateField(event) {
     const { name, value } = event.target
     setForm((current) => ({ ...current, [name]: value }))
@@ -161,19 +204,19 @@ function App() {
 
   async function submitReserve(event) {
     event.preventDefault()
-    if (!selectedProduct) return
+    if (!reserveProduct) return
 
     try {
-      await createReservation(selectedProduct, form)
+      await createReservation(reserveProduct, form)
       setProducts((current) =>
         current.map((product) =>
-          product.id === selectedProduct.id ? { ...product, status: 'reserved' } : product,
+          product.id === reserveProduct.id ? { ...product, status: 'reserved' } : product,
         ),
       )
       setNotice(
-        `${selectedProduct.name} is reserved. Seller and customer confirmation emails are ready to send through EmailJS or FormSubmit.`,
+        `${reserveProduct.name} is reserved. Seller and customer confirmation emails are ready to send through EmailJS or FormSubmit.`,
       )
-      setSelectedProduct(null)
+      setReserveProduct(null)
       setForm({
         name: '',
         email: '',
@@ -209,7 +252,7 @@ function App() {
                 key={item.id}
                 className={activeCategory === item.id ? 'active' : ''}
                 type="button"
-                onClick={() => setActiveCategory(item.id)}
+                onClick={() => navigateToCategory(item.id)}
               >
                 <span className="nav-icon" aria-hidden="true">
                   <item.icon size={19} strokeWidth={1.8} />
@@ -229,7 +272,7 @@ function App() {
               key={action.id}
               className={activeCategory === action.id ? 'active' : ''}
               type="button"
-              onClick={() => setActiveCategory(action.id)}
+              onClick={() => navigateToCategory(action.id)}
               aria-label={action.label}
               title={action.label}
             >
@@ -265,6 +308,102 @@ function App() {
           </div>
         )}
 
+        {detailProduct ? (
+          <section className="product-detail" aria-label={`${detailProduct.name} details`}>
+            <button className="back-link" type="button" onClick={closeProduct}>
+              <ArrowLeft size={18} strokeWidth={1.8} aria-hidden="true" />
+              Back to catalog
+            </button>
+            <div className="detail-layout">
+              <div className="detail-image">
+                <div
+                  className="product-photo"
+                  role="img"
+                  aria-label={detailProduct.name}
+                  style={{
+                    backgroundImage: `url(${productSheet})`,
+                    backgroundPosition: detailProduct.crop,
+                  }}
+                />
+                {reservedIds.has(detailProduct.id) && <span className="status-pill">Reserved</span>}
+              </div>
+              <article className="detail-copy">
+                <p className="eyebrow">{detailProduct.category}</p>
+                <h3>{detailProduct.name}</h3>
+                <p className="detail-price">{money(detailProduct.price)}</p>
+                <p className="detail-description">{detailProduct.description}</p>
+
+                <dl className="detail-facts">
+                  {detailProduct.sizeLabel && (
+                    <>
+                      <dt>Size</dt>
+                      <dd>{detailProduct.sizeLabel}</dd>
+                    </>
+                  )}
+                  {detailProduct.genderLabel && (
+                    <>
+                      <dt>Fit</dt>
+                      <dd>{detailProduct.genderLabel}</dd>
+                    </>
+                  )}
+                  {detailProduct.color && (
+                    <>
+                      <dt>Color</dt>
+                      <dd>{detailProduct.color}</dd>
+                    </>
+                  )}
+                  {detailProduct.fabric && (
+                    <>
+                      <dt>Fabric</dt>
+                      <dd>{detailProduct.fabric}</dd>
+                    </>
+                  )}
+                </dl>
+
+                {detailProduct.includes?.length > 0 && (
+                  <section className="detail-section">
+                    <h4>Included</h4>
+                    <ul>
+                      {detailProduct.includes.map((item) => <li key={item}>{item}</li>)}
+                    </ul>
+                  </section>
+                )}
+
+                {detailProduct.measurements?.length > 0 && (
+                  <section className="detail-section">
+                    <h4>Measurements</h4>
+                    <ul>
+                      {detailProduct.measurements.map((measurement) => (
+                        <li key={`${detailProduct.id}-${measurement.label}`}>
+                          <strong>{measurement.label}:</strong> {measurement.value}
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
+
+                {detailProduct.notes?.length > 0 && (
+                  <section className="detail-section">
+                    <h4>Notes</h4>
+                    <ul>
+                      {detailProduct.notes.map((note) => <li key={note}>{note}</li>)}
+                    </ul>
+                  </section>
+                )}
+
+                <button
+                  className="reserve-button"
+                  type="button"
+                  disabled={reservedIds.has(detailProduct.id)}
+                  onClick={() => setReserveProduct(detailProduct)}
+                >
+                  {reservedIds.has(detailProduct.id) ? 'Awaiting Payment' : 'Reserve / Buy Request'}
+                </button>
+              </article>
+            </div>
+          </section>
+        ) : (
+          <>
         {(activeCategory === 'Contacts' || activeCategory === 'Custom Order') && (
           <section className="info-band">
             <h3>{activeCategory === 'Contacts' ? 'Contact the seller' : 'Custom order requests'}</h3>
@@ -329,7 +468,20 @@ function App() {
               const reserved = reservedIds.has(product.id)
 
               return (
-                <article className={reserved ? 'product-card reserved' : 'product-card'} key={product.id}>
+                <article
+                  className={reserved ? 'product-card reserved' : 'product-card'}
+                  key={product.id}
+                  role="button"
+                  tabIndex="0"
+                  onClick={() => openProduct(product)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault()
+                      openProduct(product)
+                    }
+                  }}
+                  aria-label={`View ${product.name} details`}
+                >
                   <div className="product-image">
                     <div
                       className="product-photo"
@@ -346,29 +498,7 @@ function App() {
                     <h3>{product.name}</h3>
                     <p>{money(product.price)}</p>
                     <span>{product.description}</span>
-                    <ul className="product-notes">
-                      {product.includes?.length > 0 && (
-                        <li><strong>Outfit includes:</strong> {product.includes.join(', ')}</li>
-                      )}
-                      {product.sizeLabel && <li><strong>Size:</strong> {product.sizeLabel}</li>}
-                      {product.measurements?.slice(0, 3).map((measurement) => (
-                        <li key={`${product.id}-${measurement.label}`}>
-                          <strong>{measurement.label}:</strong> {measurement.value}
-                        </li>
-                      ))}
-                      {product.notes?.slice(0, 1).map((note) => (
-                        <li key={`${product.id}-${note}`}>{note}</li>
-                      ))}
-                    </ul>
                   </div>
-                  <button
-                    className="reserve-button"
-                    type="button"
-                    disabled={reserved}
-                    onClick={() => setSelectedProduct(product)}
-                  >
-                    {reserved ? 'Awaiting Payment' : 'Reserve / Buy Request'}
-                  </button>
                 </article>
               )
             })}
@@ -388,10 +518,12 @@ function App() {
             ))}
           </section>
         )}
+          </>
+        )}
       </section>
 
-      {selectedProduct && (
-        <div className="modal-backdrop" role="presentation" onMouseDown={() => setSelectedProduct(null)}>
+      {reserveProduct && (
+        <div className="modal-backdrop" role="presentation" onMouseDown={() => setReserveProduct(null)}>
           <section
             className="reserve-modal"
             role="dialog"
@@ -399,12 +531,12 @@ function App() {
             aria-labelledby="reserve-title"
             onMouseDown={(event) => event.stopPropagation()}
           >
-            <button className="close-button" type="button" onClick={() => setSelectedProduct(null)} aria-label="Close">
+            <button className="close-button" type="button" onClick={() => setReserveProduct(null)} aria-label="Close">
               x
             </button>
             <p className="eyebrow">Reserve Request</p>
-            <h3 id="reserve-title">{selectedProduct.name}</h3>
-            <p className="modal-price">{money(selectedProduct.price)}</p>
+            <h3 id="reserve-title">{reserveProduct.name}</h3>
+            <p className="modal-price">{money(reserveProduct.price)}</p>
 
             <form onSubmit={submitReserve}>
               <label>
