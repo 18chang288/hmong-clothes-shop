@@ -12,9 +12,7 @@
   min-height: 100vh;
   overflow: hidden;
   color: var(--cream);
-  background:
-    linear-gradient(90deg, rgba(195, 142, 77, 0.2), transparent 12%),
-    var(--ink);
+  background: var(--ink);
   box-shadow: 18px 0 45px rgba(23, 19, 16, 0.12);
 }
 
@@ -30,14 +28,14 @@
   position: relative;
   z-index: 3;
   flex: 0 0 auto;
-  padding: 28px 34px 30px;
+  padding: 22px 30px 24px;
   text-align: center;
 }
 
 .brand-mark {
-  width: 140px;
-  height: 140px;
-  margin: 0 auto 6px;
+  width: 112px;
+  height: 112px;
+  margin: 0 auto 4px;
   display: grid;
   place-items: center;
 }
@@ -52,7 +50,7 @@
   margin: 0;
   color: var(--cream);
   font-family: var(--serif);
-  font-size: 30px;
+  font-size: 26px;
   font-weight: 500;
   letter-spacing: 0.07em;
   line-height: 1.22;
@@ -69,8 +67,8 @@
 }
 
 .brand p {
-  margin-top: 9px;
-  font-size: 12px;
+  margin-top: 8px;
+  font-size: 11px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
@@ -110,12 +108,12 @@
 }
 
 .category-nav button {
-  min-height: 74px;
+  min-height: 58px;
   display: grid;
-  grid-template-columns: 52px 1fr;
+  grid-template-columns: 44px 1fr;
   align-items: center;
   width: 100%;
-  padding: 0 24px;
+  padding: 0 22px;
   border: 0;
   border-top: 1px solid rgba(255, 255, 255, 0.11);
   color: var(--cream);
@@ -133,8 +131,8 @@
 }
 
 .nav-icon {
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
   display: grid;
   place-items: center;
   border: 1px solid rgba(200, 149, 77, 0.65);
@@ -647,7 +645,7 @@ select:focus-visible {
   }
 
   .brand {
-    padding-inline: 22px;
+    padding-inline: 20px;
   }
 
   .catalog-grid {
@@ -655,7 +653,7 @@ select:focus-visible {
   }
 
   .category-nav button {
-    min-height: 68px;
+    min-height: 54px;
     grid-template-columns: 44px 1fr;
     padding: 0 20px;
   }
