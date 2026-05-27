@@ -20,8 +20,14 @@ import hmongHeart from './assets/hmong_heart.png'
 import {
   createReservation,
   fetchProducts,
+  fetchMyReservations,
+  getCurrentSession,
   hasSupabaseConfig,
+  onAuthChange,
   productSheet,
+  signInWithEmail,
+  signOut,
+  signUpWithEmail,
 } from './shopData'
 import './App.css'
 
@@ -107,6 +113,15 @@ function App() {
   const [loading, setLoading] = useState(hasSupabaseConfig)
   const [dataError, setDataError] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
+  const [session, setSession] = useState(null)
+  const [authMode, setAuthMode] = useState('login')
+  const [authMessage, setAuthMessage] = useState('')
+  const [authForm, setAuthForm] = useState({
+    email: '',
+    password: '',
+  })
+  const [myTickets, setMyTickets] = useState([])
+  const [ticketLoading, setTicketLoading] = useState(false)
   const [form, setForm] = useState({
     requestType: 'Ready-made item',
     name: '',
@@ -143,6 +158,56 @@ function App() {
       alive = false
     }
   }, [])
+
+  useEffect(() => {
+    let alive = true
+
+    async function loadSession() {
+      try {
+        const currentSession = await getCurrentSession()
+        if (alive) setSession(currentSession)
+      } catch (error) {
+        if (alive) setAuthMessage(error.message)
+      }
+    }
+
+    loadSession()
+    const unsubscribe = onAuthChange((nextSession) => {
+      setSession(nextSession)
+    })
+
+    return () => {
+      alive = false
+      unsubscribe()
+    }
+  }, [])
+
+  useEffect(() => {
+    let alive = true
+
+    async function loadTickets() {
+      if (!session) {
+        setMyTickets([])
+        return
+      }
+
+      try {
+        setTicketLoading(true)
+        const tickets = await fetchMyReservations()
+        if (alive) setMyTickets(tickets)
+      } catch (error) {
+        if (alive) setAuthMessage(error.message)
+      } finally {
+        if (alive) setTicketLoading(false)
+      }
+    }
+
+    loadTickets()
+
+    return () => {
+      alive = false
+    }
+  }, [session])
 
   useEffect(() => {
     function syncDetailSlug() {
@@ -220,11 +285,51 @@ function App() {
     setForm((current) => ({ ...current, [name]: value }))
   }
 
+  function updateAuthField(event) {
+    const { name, value } = event.target
+    setAuthForm((current) => ({ ...current, [name]: value }))
+  }
+
+  async function submitAuth(event) {
+    event.preventDefault()
+    setAuthMessage('')
+
+    try {
+      if (authMode === 'signup') {
+        await signUpWithEmail(authForm.email, authForm.password)
+        setAuthMessage('Account created. Check your email if Supabase requires confirmation, then log in.')
+        setAuthMode('login')
+      } else {
+        await signInWithEmail(authForm.email, authForm.password)
+        setAuthMessage('Logged in successfully.')
+      }
+      setAuthForm({ email: '', password: '' })
+    } catch (error) {
+      setAuthMessage(error.message)
+    }
+  }
+
+  async function handleSignOut() {
+    try {
+      await signOut()
+      setAuthMessage('Logged out.')
+    } catch (error) {
+      setAuthMessage(error.message)
+    }
+  }
+
   async function submitReserve(event) {
     event.preventDefault()
     if (!reserveProduct) return
 
     try {
+      if (!session) {
+        setNotice('Please log in or sign up before creating a ticket.')
+        setReserveProduct(null)
+        setActiveCategory('Account')
+        return
+      }
+
       await createReservation(reserveProduct, form)
       setProducts((current) =>
         current.map((product) =>
@@ -460,54 +565,133 @@ function App() {
         )}
 
         {activeCategory === 'Account' && (
-          <section className="account-access" aria-label="Account and ticket access">
+        <section className="account-access" aria-label="Account and ticket access">
+            <article>
+              <UserRound size={30} strokeWidth={1.6} aria-hidden="true" />
+              <h3>{session ? 'Account' : authMode === 'signup' ? 'Create Account' : 'Login'}</h3>
+              {session ? (
+                <>
+                  <p>Signed in as {session.user.email}.</p>
+                  {session.user.app_metadata?.role === 'admin' && (
+                    <p className="admin-badge">Admin account</p>
+                  )}
+                  <button className="submit-button" type="button" onClick={handleSignOut}>Log Out</button>
+                </>
+              ) : (
+                <>
+                  <p>Guests can sign up with email and password to create tickets and see item status.</p>
+                  <form onSubmit={submitAuth}>
+                    <label>
+                      Email
+                      <input
+                        name="email"
+                        type="email"
+                        value={authForm.email}
+                        onChange={updateAuthField}
+                        required
+                      />
+                    </label>
+                    <label>
+                      Password
+                      <input
+                        name="password"
+                        type="password"
+                        value={authForm.password}
+                        onChange={updateAuthField}
+                        minLength="6"
+                        required
+                      />
+                    </label>
+                    <button className="submit-button" type="submit">
+                      {authMode === 'signup' ? 'Sign Up' : 'Login'}
+                    </button>
+                  </form>
+                  <button
+                    className="text-button"
+                    type="button"
+                    onClick={() => {
+                      setAuthMessage('')
+                      setAuthMode(authMode === 'signup' ? 'login' : 'signup')
+                    }}
+                  >
+                    {authMode === 'signup' ? 'Already have an account? Login' : 'Need an account? Sign up'}
+                  </button>
+                </>
+              )}
+              {authMessage && <p className="help-note">{authMessage}</p>}
+            </article>
+
             <article className="support-card">
               <Phone size={30} strokeWidth={1.6} aria-hidden="true" />
               <h3>Call or Text for Help</h3>
-              <p>The easiest way to check an order is to call or text the shop. We can look up your ticket, explain the payment step, and help with sizing or custom questions.</p>
+              <p>The easiest way to get help is to call or text the shop. We can explain payment, sizing, and custom questions.</p>
               <div className="contact-actions">
                 <a href="tel:+15551234567">Call Shop</a>
                 <a href="sms:+15551234567">Text Shop</a>
               </div>
-              <p className="help-note">Have your name, phone or email, and item name ready. A ticket number helps if you have one.</p>
             </article>
 
             <article>
-              <UserRound size={30} strokeWidth={1.6} aria-hidden="true" />
-              <h3>Online Ticket Lookup</h3>
-              <p>For self-service, enter your email or phone number and we will send a one-time access code. After verification, you can see payment, crafting, shipping, and completion updates.</p>
-              <form>
-                <label>
-                  Email or phone number
-                  <input placeholder="name@example.com or 555-123-4567" />
-                </label>
-                <label>
-                  Ticket number
-                  <input placeholder="HT-1234ABCD" />
-                </label>
-                <button className="submit-button" type="button">Send Access Code</button>
-              </form>
-              <p className="help-note">Order details should only show after a one-time code confirms the email or phone belongs to the customer.</p>
+              <ClipboardList size={30} strokeWidth={1.6} aria-hidden="true" />
+              <h3>My Tickets</h3>
+              {!session && <p>Log in to see your ticket status.</p>}
+              {session && ticketLoading && <p>Loading tickets...</p>}
+              {session && !ticketLoading && myTickets.length === 0 && <p>No tickets yet.</p>}
+              {session && myTickets.length > 0 && (
+                <div className="ticket-list">
+                  {myTickets.map((ticket) => (
+                    <article className="mini-ticket" key={ticket.id}>
+                      <strong>{ticket.product_name_snapshot}</strong>
+                      <span>{ticket.order_number} / {ticket.status}</span>
+                      <span>{money(ticket.price_snapshot)} / {ticket.payment_method}</span>
+                      {ticket.seller_note && <p>{ticket.seller_note}</p>}
+                    </article>
+                  ))}
+                </div>
+              )}
             </article>
 
             <article>
               <ShieldCheck size={30} strokeWidth={1.6} aria-hidden="true" />
               <h3>Admin Access</h3>
-              <p>Store owners sign in separately. Admins can view every ticket, verify payment, update crafting and shipping status, add USPS tracking, upload final photos, and mark tickets complete.</p>
-              <form>
-                <label>
-                  Admin email
-                  <input placeholder="owner@example.com" />
-                </label>
-                <button className="submit-button" type="button">Send Admin Link</button>
-              </form>
-              <p className="help-note">Admin permission should be stored server-side with Supabase Auth and Row Level Security, not in editable customer profile data.</p>
+              <p>Admins use this same login, but admin permission must be added manually in Supabase. Guests cannot make themselves admin.</p>
+              <p className="help-note">Set the user metadata role to admin in Supabase after creating the account.</p>
             </article>
           </section>
         )}
 
         {activeCategory === 'Tickets' && (
           <section className="ticket-board" aria-label="Order ticket process">
+            {session && (
+              <article>
+                <ClipboardList size={30} strokeWidth={1.6} aria-hidden="true" />
+                <h3>My Ticket Status</h3>
+                {ticketLoading && <p>Loading tickets...</p>}
+                {!ticketLoading && myTickets.length === 0 && <p>No tickets yet.</p>}
+                {myTickets.length > 0 && (
+                  <div className="ticket-list">
+                    {myTickets.map((ticket) => (
+                      <article className="mini-ticket" key={ticket.id}>
+                        <strong>{ticket.product_name_snapshot}</strong>
+                        <span>{ticket.order_number} / {ticket.status}</span>
+                        <span>{money(ticket.price_snapshot)} / {ticket.payment_method}</span>
+                        {ticket.seller_note && <p>{ticket.seller_note}</p>}
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </article>
+            )}
+            {!session && (
+              <article>
+                <UserRound size={30} strokeWidth={1.6} aria-hidden="true" />
+                <h3>Login Required</h3>
+                <p>Log in or sign up from the Account page to see ticket status.</p>
+                <button className="submit-button" type="button" onClick={() => setActiveCategory('Account')}>
+                  Go to Account
+                </button>
+              </article>
+            )}
             <article>
               <ClipboardList size={30} strokeWidth={1.6} aria-hidden="true" />
               <h3>Ready-Made Ticket</h3>

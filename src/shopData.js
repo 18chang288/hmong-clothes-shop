@@ -73,6 +73,13 @@ export async function createReservation(product, form) {
     throw new Error('Supabase is not configured.')
   }
 
+  const { data: sessionData } = await supabase.auth.getSession()
+  const userId = sessionData.session?.user?.id
+
+  if (!userId) {
+    throw new Error('Please log in or sign up before creating a ticket.')
+  }
+
   const ticketNotes = [
     `Ticket type: ${form.requestType}`,
     form.bodyMeasurements ? `Measurements / adjustment: ${form.bodyMeasurements}` : '',
@@ -80,6 +87,7 @@ export async function createReservation(product, form) {
   ].filter(Boolean).join('\n\n')
 
   const payload = {
+    user_id: userId,
     product_id: product.id,
     product_name_snapshot: product.name,
     price_snapshot: product.price,
@@ -98,6 +106,62 @@ export async function createReservation(product, form) {
 
   if (error) throw error
   return true
+}
+
+export async function getCurrentSession() {
+  if (!hasSupabaseConfig) return null
+  const { data, error } = await supabase.auth.getSession()
+  if (error) throw error
+  return data.session
+}
+
+export function onAuthChange(callback) {
+  if (!hasSupabaseConfig) return () => {}
+  const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+    callback(session)
+  })
+  return () => data.subscription.unsubscribe()
+}
+
+export async function signUpWithEmail(email, password) {
+  const { data, error } = await supabase.auth.signUp({ email, password })
+  if (error) throw error
+  return data
+}
+
+export async function signInWithEmail(email, password) {
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+  if (error) throw error
+  return data
+}
+
+export async function signOut() {
+  const { error } = await supabase.auth.signOut()
+  if (error) throw error
+}
+
+export async function fetchMyReservations() {
+  if (!hasSupabaseConfig) return []
+
+  const { data, error } = await supabase
+    .from('reservations')
+    .select(`
+      id,
+      order_number,
+      product_id,
+      product_name_snapshot,
+      price_snapshot,
+      payment_method,
+      status,
+      seller_note,
+      created_at,
+      paid_at,
+      sold_at
+    `)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return data
 }
 
 export { hasSupabaseConfig, productSheet }

@@ -376,6 +376,48 @@
   font-size: 13px;
 }
 
+.text-button {
+  width: fit-content;
+  border: 0;
+  padding: 0;
+  color: var(--gold-dark);
+  background: transparent;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin-badge {
+  width: fit-content;
+  border-radius: 999px;
+  padding: 6px 10px;
+  color: #1f170d !important;
+  background: #ead2a8;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ticket-list {
+  display: grid;
+  gap: 10px;
+}
+
+.mini-ticket {
+  display: grid;
+  gap: 4px;
+  border: 1px solid rgba(147, 105, 50, 0.24);
+  border-radius: 6px;
+  padding: 12px;
+  background: #fffdf8;
+}
+
+.mini-ticket span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .ticket-board ol,
 .process-list {
   margin: 4px 0 0;
