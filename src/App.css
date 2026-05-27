@@ -1,7 +1,7 @@
 .shop-shell {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 390px minmax(0, 1fr);
+  grid-template-columns: 300px minmax(0, 1fr);
   background: var(--paper);
 }
 
@@ -18,30 +18,9 @@
   box-shadow: 18px 0 45px rgba(23, 19, 16, 0.12);
 }
 
-.woven-strip {
-  position: absolute;
-  inset: 0 auto 0 0;
-  z-index: 4;
-  width: 70px;
-  overflow: visible;
-  pointer-events: none;
-  mix-blend-mode: normal;
-}
-
-.woven-strip img {
-  display: block;
-  width: auto;
-  height: 100%;
-  object-fit: contain;
-  transform: translateX(-84px);
-  filter: sepia(0.72) saturate(1.35) brightness(0.98) contrast(0.86);
-  opacity: 0.78;
-}
-
 .sidebar-main {
   position: relative;
   z-index: 1;
-  margin-left: 70px;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -135,9 +114,8 @@
   display: grid;
   grid-template-columns: 52px 1fr;
   align-items: center;
-  width: calc(100% + 14px);
-  margin-left: -14px;
-  padding: 0 34px 0 48px;
+  width: 100%;
+  padding: 0 24px;
   border: 0;
   border-top: 1px solid rgba(255, 255, 255, 0.11);
   color: var(--cream);
@@ -665,7 +643,7 @@ select:focus-visible {
 
 @media (max-width: 1180px) {
   .shop-shell {
-    grid-template-columns: 320px minmax(0, 1fr);
+    grid-template-columns: 280px minmax(0, 1fr);
   }
 
   .brand {
@@ -698,11 +676,6 @@ select:focus-visible {
   .sidebar-main {
     min-height: auto;
     display: block;
-    margin-left: 0;
-  }
-
-  .woven-strip {
-    display: none;
   }
 
   .brand {

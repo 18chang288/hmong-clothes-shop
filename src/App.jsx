@@ -17,7 +17,6 @@ import {
   UserRound,
 } from 'lucide-react'
 import hmongHeart from './assets/hmong_heart.png'
-import borderPattern from './assets/border.png'
 import {
   createReservation,
   fetchProducts,
@@ -233,9 +232,6 @@ function App() {
   return (
     <main className="shop-shell">
       <aside className="sidebar" aria-label="Shop navigation">
-        <div className="woven-strip" aria-hidden="true">
-          <img src={borderPattern} alt="" />
-        </div>
         <div className="sidebar-main">
           <div className="brand">
             <div className="brand-mark" aria-hidden="true">
