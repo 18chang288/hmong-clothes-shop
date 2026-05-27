@@ -73,6 +73,12 @@ export async function createReservation(product, form) {
     throw new Error('Supabase is not configured.')
   }
 
+  const ticketNotes = [
+    `Ticket type: ${form.requestType}`,
+    form.bodyMeasurements ? `Measurements / adjustment: ${form.bodyMeasurements}` : '',
+    form.note ? `Customer note: ${form.note}` : '',
+  ].filter(Boolean).join('\n\n')
+
   const payload = {
     product_id: product.id,
     product_name_snapshot: product.name,
@@ -82,7 +88,7 @@ export async function createReservation(product, form) {
     customer_phone: form.phone,
     shipping_address: form.address,
     payment_method: form.paymentMethod,
-    customer_note: form.note,
+    customer_note: ticketNotes,
     status: 'reserved',
   }
 

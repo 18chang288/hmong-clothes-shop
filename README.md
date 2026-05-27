@@ -46,7 +46,7 @@ The public site can read available/reserved products and create reservation requ
 
 ## Current Flow
 
-1. Customer clicks `Reserve / Buy Request`.
+1. Customer clicks `Create Ticket`.
 2. Customer enters name, email, phone, shipping address, payment method, and notes.
 3. Supabase creates a reservation row.
 4. A database trigger marks the product `reserved`.
@@ -55,3 +55,19 @@ The public site can read available/reserved products and create reservation requ
 7. Sold items disappear from the public catalog.
 
 EmailJS/FormSubmit can be added next to send one seller order email and one customer confirmation email after a reservation succeeds.
+
+## Ticket Workflow
+
+Ready-made tickets: created, waiting for payment verification, packed with USPS tracking, delivered, completed.
+
+Custom or adjustment tickets: created, confirm measurements, crafting/adjustment, final photo approval, packed with USPS tracking, completed.
+
+The current site stores ticket type and measurement notes in `reservations.customer_note` so it works with the existing database. A later admin dashboard can add dedicated columns for ticket status, tracking number, delivery status, and final product photos. USPS delivery updates can be automated later through a tracking API or shipping provider webhook.
+
+## Account Access Direction
+
+The easiest customer path should be call or text support. Many customers may not want to manage an online account, so keep a visible shop phone number and let the seller look up tickets manually.
+
+Do not expose order details by email or phone number alone. For customers who want self-service, use email or phone verification through Supabase Auth OTP, then show only tickets attached to that verified user/contact.
+
+Admin access should be separate from customer access. Store admin permission in server-controlled auth metadata or an admin profile table protected by Row Level Security. Do not store admin permission in customer-editable profile fields.

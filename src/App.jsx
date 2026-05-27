@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   ArrowLeft,
+  ClipboardList,
   Ellipsis,
   FileText,
   HeartHandshake,
@@ -12,7 +13,6 @@ import {
   ShieldCheck,
   Shirt,
   ShoppingBag,
-  ShoppingCart,
   Truck,
   UserRound,
 } from 'lucide-react'
@@ -37,8 +37,25 @@ const navigationItems = [
 
 const headerActions = [
   { id: 'Search', icon: Search, label: 'Search' },
-  { id: 'Login', icon: UserRound, label: 'Login' },
-  { id: 'Cart', icon: ShoppingCart, label: 'Cart' },
+  { id: 'Account', icon: UserRound, label: 'Account' },
+  { id: 'Tickets', icon: ClipboardList, label: 'Tickets' },
+]
+
+const readyMadeSteps = [
+  'Ticket created',
+  'Waiting for payment verification',
+  'Packed with USPS tracking',
+  'Delivered',
+  'Completed',
+]
+
+const customSteps = [
+  'Ticket created',
+  'Confirm measurements',
+  'Crafting / adjustment',
+  'Final photo approval',
+  'Packed with USPS tracking',
+  'Completed',
 ]
 
 const trustItems = [
@@ -91,11 +108,13 @@ function App() {
   const [dataError, setDataError] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [form, setForm] = useState({
+    requestType: 'Ready-made item',
     name: '',
     email: '',
     phone: '',
     address: '',
     paymentMethod: 'PayPal',
+    bodyMeasurements: '',
     note: '',
   })
 
@@ -170,7 +189,7 @@ function App() {
 
     if (activeCategory === 'Search') return query === '' ? true : searchableText.includes(query)
     if (activeCategory === 'Home') return true
-    if (['Contacts', 'Store Policy', 'Other', 'Login', 'Cart'].includes(activeCategory)) return false
+    if (['Contacts', 'Store Policy', 'Other', 'Account', 'Tickets'].includes(activeCategory)) return false
     if (activeCategory === 'Custom Order') return product.category === 'Hmong Clothes'
     if (activeCategory === 'Miscs') return product.category === 'Misc'
     return product.category === activeCategory
@@ -213,15 +232,17 @@ function App() {
         ),
       )
       setNotice(
-        `${reserveProduct.name} is reserved. Seller and customer confirmation emails are ready to send through EmailJS or FormSubmit.`,
+        `${reserveProduct.name} ticket was created. The shop owner will verify payment and update the process status.`,
       )
       setReserveProduct(null)
       setForm({
+        requestType: 'Ready-made item',
         name: '',
         email: '',
         phone: '',
         address: '',
         paymentMethod: 'PayPal',
+        bodyMeasurements: '',
         note: '',
       })
     } catch (error) {
@@ -262,7 +283,7 @@ function App() {
       </aside>
 
       <section className="content">
-        <div className="top-actions" aria-label="Account and shopping tools">
+        <div className="top-actions" aria-label="Search, account, and ticket tools">
           {headerActions.map((action) => (
             <button
               key={action.id}
@@ -393,8 +414,23 @@ function App() {
                   disabled={reservedIds.has(detailProduct.id)}
                   onClick={() => setReserveProduct(detailProduct)}
                 >
-                  {reservedIds.has(detailProduct.id) ? 'Awaiting Payment' : 'Reserve / Buy Request'}
-                </button>
+                {reservedIds.has(detailProduct.id) ? 'Ticket Open' : 'Create Ticket'}
+              </button>
+
+              <section className="ticket-preview" aria-label="Ticket process preview">
+                <h4>How this order moves</h4>
+                <div className="process-list">
+                  {(detailProduct.category === 'Custom Order' || detailProduct.notes?.some((note) => note.toLowerCase().includes('custom'))
+                    ? customSteps
+                    : readyMadeSteps
+                  ).map((step, index) => (
+                    <span key={step} className={index === 2 && step.includes('Crafting') ? 'craft-step' : ''}>
+                      {index === 2 && step.includes('Crafting') && <Scissors size={15} strokeWidth={1.8} aria-hidden="true" />}
+                      {step}
+                    </span>
+                  ))}
+                </div>
+              </section>
               </article>
             </div>
           </section>
@@ -423,19 +459,71 @@ function App() {
           </section>
         )}
 
-        {activeCategory === 'Login' && (
-          <section className="utility-panel">
-            <UserRound size={30} strokeWidth={1.6} aria-hidden="true" />
-            <h3>Login</h3>
-            <p>Customer and seller accounts can be connected here later with Supabase Auth.</p>
+        {activeCategory === 'Account' && (
+          <section className="account-access" aria-label="Account and ticket access">
+            <article className="support-card">
+              <Phone size={30} strokeWidth={1.6} aria-hidden="true" />
+              <h3>Call or Text for Help</h3>
+              <p>The easiest way to check an order is to call or text the shop. We can look up your ticket, explain the payment step, and help with sizing or custom questions.</p>
+              <div className="contact-actions">
+                <a href="tel:+15551234567">Call Shop</a>
+                <a href="sms:+15551234567">Text Shop</a>
+              </div>
+              <p className="help-note">Have your name, phone or email, and item name ready. A ticket number helps if you have one.</p>
+            </article>
+
+            <article>
+              <UserRound size={30} strokeWidth={1.6} aria-hidden="true" />
+              <h3>Online Ticket Lookup</h3>
+              <p>For self-service, enter your email or phone number and we will send a one-time access code. After verification, you can see payment, crafting, shipping, and completion updates.</p>
+              <form>
+                <label>
+                  Email or phone number
+                  <input placeholder="name@example.com or 555-123-4567" />
+                </label>
+                <label>
+                  Ticket number
+                  <input placeholder="HT-1234ABCD" />
+                </label>
+                <button className="submit-button" type="button">Send Access Code</button>
+              </form>
+              <p className="help-note">Order details should only show after a one-time code confirms the email or phone belongs to the customer.</p>
+            </article>
+
+            <article>
+              <ShieldCheck size={30} strokeWidth={1.6} aria-hidden="true" />
+              <h3>Admin Access</h3>
+              <p>Store owners sign in separately. Admins can view every ticket, verify payment, update crafting and shipping status, add USPS tracking, upload final photos, and mark tickets complete.</p>
+              <form>
+                <label>
+                  Admin email
+                  <input placeholder="owner@example.com" />
+                </label>
+                <button className="submit-button" type="button">Send Admin Link</button>
+              </form>
+              <p className="help-note">Admin permission should be stored server-side with Supabase Auth and Row Level Security, not in editable customer profile data.</p>
+            </article>
           </section>
         )}
 
-        {activeCategory === 'Cart' && (
-          <section className="utility-panel">
-            <ShoppingCart size={30} strokeWidth={1.6} aria-hidden="true" />
-            <h3>Cart</h3>
-            <p>This shop uses reserve requests instead of instant checkout. Reserved items wait for manual PayPal, Venmo, or Cash App confirmation.</p>
+        {activeCategory === 'Tickets' && (
+          <section className="ticket-board" aria-label="Order ticket process">
+            <article>
+              <ClipboardList size={30} strokeWidth={1.6} aria-hidden="true" />
+              <h3>Ready-Made Ticket</h3>
+              <p>For finished products. The customer creates a ticket, sends payment manually, and the shop owner verifies payment before packing and shipping.</p>
+              <ol>
+                {readyMadeSteps.map((step) => <li key={step}>{step}</li>)}
+              </ol>
+            </article>
+            <article>
+              <Scissors className="scissor-loop" size={30} strokeWidth={1.6} aria-hidden="true" />
+              <h3>Custom / Adjustment Ticket</h3>
+              <p>For custom work, sizing changes, or a smaller/larger fit. The ticket collects measurements and keeps the customer updated while the item is being made.</p>
+              <ol>
+                {customSteps.map((step) => <li key={step}>{step}</li>)}
+              </ol>
+            </article>
           </section>
         )}
 
@@ -530,11 +618,18 @@ function App() {
             <button className="close-button" type="button" onClick={() => setReserveProduct(null)} aria-label="Close">
               x
             </button>
-            <p className="eyebrow">Reserve Request</p>
+            <p className="eyebrow">Order Ticket</p>
             <h3 id="reserve-title">{reserveProduct.name}</h3>
             <p className="modal-price">{money(reserveProduct.price)}</p>
 
             <form onSubmit={submitReserve}>
+              <label>
+                Ticket type
+                <select name="requestType" value={form.requestType} onChange={updateField}>
+                  <option>Ready-made item</option>
+                  <option>Custom or size adjustment</option>
+                </select>
+              </label>
               <label>
                 Full name
                 <input name="name" value={form.name} onChange={updateField} required />
@@ -558,10 +653,20 @@ function App() {
                 </select>
               </label>
               <label>
-                Notes
+                Measurements or adjustment notes
+                <textarea
+                  name="bodyMeasurements"
+                  value={form.bodyMeasurements}
+                  onChange={updateField}
+                  rows="3"
+                  placeholder="Chest, waist, length, height, or what needs to be adjusted"
+                />
+              </label>
+              <label>
+                Extra notes
                 <textarea name="note" value={form.note} onChange={updateField} rows="2" />
               </label>
-              <button type="submit" className="submit-button">Reserve Item</button>
+              <button type="submit" className="submit-button">Create Ticket</button>
             </form>
           </section>
         </div>
